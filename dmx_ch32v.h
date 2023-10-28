@@ -1,12 +1,12 @@
 /*
 Guus 2023. channel vals are 0-511 (NOT 1-512)
-tested on ch32v003 and ch32v203.
+tested on ch32v003
 This library does not set the rs485 driver in the right direction. Do so before starting or permanent by hardware.
 */
 
 #ifndef dmx_ch32v_h
 #define dmx_ch32v_h
-#define DMX_UART1 // defines the uart to use
+#define DMX_UART2 // defines the uart to use
 
 #if defined(CH32V00X)
 #include <ch32v00x.h>
@@ -96,10 +96,9 @@ typedef enum
     DMX_STOP = 0x00,
     DMX_IDLE = 0x01,
     DMX_BREAK = 0x02,
-    DMX_START = 0x03,
-    DMX_RUN = 0x04
+    DMX_START = 0x04,
+    DMX_RUN = 0x05
 } dmx_state_t;
-
 
 typedef enum
 {
@@ -124,7 +123,7 @@ typedef enum
 
 } dmx_speed_fps;
 
-//starts the transmitter
+// starts the transmitter
 void dmx_beginTX();
 #define dmx_transmitter_begin dmx_beginTX
 
@@ -132,7 +131,10 @@ void dmx_beginTX();
 void dmx_beginRX();
 #define dmx_receiver_begin dmx_beginRX
 
-// sets (an approximation) of the breaktime in usec. 
+// stop
+void dmx_stop();
+
+// sets (an approximation) of the breaktime in usec.
 void dmx_setBreakTime(unsigned short usec);
 
 // sets the speed of tx mode
@@ -141,7 +143,7 @@ void dmx_setFPS(dmx_speed_fps f);
 // sets single value to addr
 signed short dmx_setValue(unsigned short chan, unsigned char value);
 
-// sets vals from arr to dmx
+// sets vals from arr to
 signed short dmx_setValues(unsigned short startchan, unsigned char *p, unsigned short len);
 
 // set the startcode
@@ -156,12 +158,11 @@ signed short dmx_getValues(unsigned short startchan, unsigned char *p, unsigned 
 // returns last packet startcode
 unsigned char dmx_getStartcode();
 
-// returns 0xff if new frame is avail since last check 
+// returns 0xff if new frame is avail since last check
 unsigned char dmx_newPacket();
 
 // returns size of last received packet
 unsigned short dmx_getPacketSize();
-
 
 #if defined(DMX_UART1)
 extern void USART1_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));

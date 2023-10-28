@@ -14,8 +14,7 @@ unsigned short dmx_idletime = 2;
 
 void (*dmx_interrupt)(void) = &dmx_irqplaceholder;
 
-volatile unsigned char dmx_startcode = 0xcc;
-// volatile unsigned char dmx_startcode = 0x00;
+volatile unsigned char dmx_startcode = 0x00;
 volatile unsigned char dmx_newdata = 0x00;
 volatile unsigned char dmx_pktsize;
 volatile dmx_state_t dmx_state = DMX_IDLE;
@@ -105,8 +104,9 @@ void dmx_beginTX()
     USART_Cmd(UARTNUM, ENABLE);
 }
 
-void dmx_stop(){
-    //itcs
+void dmx_stop()
+{
+    // itcs
     USART_ITConfig(UARTNUM, USART_IT_TXE, DISABLE);
     USART_ITConfig(UARTNUM, USART_IT_RXNE, DISABLE);
     // uart peri
@@ -119,7 +119,8 @@ void dmx_stop(){
 #elif defined(DMX_UART2) || (DMX_UART3)
     RCC_APB1PeriphClockCmd(RCC_APB2Periph_USARTNUM, DISABLE);
 #endif
-
+    dmx_state = DMX_STOP;
+    dmx_dir = DMX_DIRNOTSET;
 }
 
 void dmx_setBreakTime(unsigned short usec)

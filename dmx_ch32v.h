@@ -6,7 +6,7 @@ This library does not set the rs485 driver in the right direction. Do so before 
 
 #ifndef dmx_ch32v_h
 #define dmx_ch32v_h
-#define DMX_UART2 // defines the uart to use
+#define DMX_UART1 // defines the uart to use
 
 #if defined(CH32V00X)
 #include <ch32v00x.h>

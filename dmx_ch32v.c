@@ -60,6 +60,8 @@ void dmx_beginRX()
     USART_ITConfig(UARTNUM, USART_IT_RXNE, ENABLE);
 
     NVIC_EnableIRQ(USARTNUM_IRQn);
+    // turn on preemption, set prio low
+    NVIC_SetPriority(USARTNUM_IRQn, 0xe0);
 
     USART_Cmd(UARTNUM, ENABLE);
 }
@@ -95,11 +97,14 @@ void dmx_beginTX()
 
     dmx_interrupt = &dmx_txIRQ;
 
-    USART_DeInit(UARTNUM);
+    // USART_DeInit(UARTNUM);
     USART_Init(UARTNUM, &dmx_uartinit);
     USART_ITConfig(UARTNUM, USART_IT_TXE, ENABLE);
 
     NVIC_EnableIRQ(USARTNUM_IRQn);
+    // turn on preemption, set prio low
+    NVIC_SetPriority(USARTNUM_IRQn, 0xe0);
+
 
     USART_Cmd(UARTNUM, ENABLE);
 }
@@ -107,18 +112,20 @@ void dmx_beginTX()
 void dmx_stop()
 {
     // itcs
-    USART_ITConfig(UARTNUM, USART_IT_TXE, DISABLE);
-    USART_ITConfig(UARTNUM, USART_IT_RXNE, DISABLE);
-    // uart peri
-    USART_Cmd(UARTNUM, DISABLE);
+    // USART_ITConfig(UARTNUM, USART_IT_TXE, DISABLE);
+    // USART_ITConfig(UARTNUM, USART_IT_RXNE, DISABLE);
+    // // uart peri
+    // USART_Cmd(UARTNUM, DISABLE);
 
-    // peripheral clock
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOPORT, DISABLE);
-#if defined(DMX_UART1)
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_USARTNUM, DISABLE);
-#elif defined(DMX_UART2) || (DMX_UART3)
-    RCC_APB1PeriphClockCmd(RCC_APB2Periph_USARTNUM, DISABLE);
-#endif
+//     // peripheral clock
+//     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOPORT, DISABLE);
+// #if defined(DMX_UART1)
+//     RCC_APB2PeriphClockCmd(RCC_APB2Periph_USARTNUM, DISABLE);
+// #elif defined(DMX_UART2) || (DMX_UART3)
+//     RCC_APB1PeriphClockCmd(RCC_APB2Periph_USARTNUM, DISABLE);
+// #endif
+    NVIC_DisableIRQ(USARTNUM_IRQn);
+
     dmx_state = DMX_STOP;
     dmx_dir = DMX_DIRNOTSET;
 }

@@ -39,11 +39,14 @@ void dmx_beginRX()
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOPORT, ENABLE);
 #if defined(DMX_UART1)
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_USARTNUM, ENABLE);
+#elif defined(DMX_UART2) || (DMX_UART3)
+    RCC_APB1PeriphClockCmd(RCC_APB2Periph_USARTNUM, ENABLE);
 #endif
+
 
     dxm_gpiorx.GPIO_Pin = GPIORXPIN;
     dxm_gpiorx.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-    dxm_gpiorx.GPIO_Speed = GPIO_Speed_2MHz;
+    dxm_gpiorx.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_Init(GPIOPORT, &dxm_gpiorx);
 
     dmx_uartinit.USART_BaudRate = 250000;
@@ -61,7 +64,7 @@ void dmx_beginRX()
 
     NVIC_EnableIRQ(USARTNUM_IRQn);
     // turn on preemption, set prio low
-    NVIC_SetPriority(USARTNUM_IRQn, 0xe0);
+    NVIC_SetPriority(USARTNUM_IRQn, 0xa0);
 
     USART_Cmd(UARTNUM, ENABLE);
 }
@@ -84,7 +87,7 @@ void dmx_beginTX()
     dxm_gpiotx.GPIO_Pin = GPIOTXPIN;
     // dxm_gpiotx.GPIO_Mode = GPIO_Mode_AF_PP;
     dxm_gpiotx.GPIO_Mode = GPIO_Mode_Out_PP;
-    dxm_gpiotx.GPIO_Speed = GPIO_Speed_2MHz;
+    dxm_gpiotx.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_Init(GPIOPORT, &dxm_gpiotx);
 
     // seting the config
@@ -103,7 +106,7 @@ void dmx_beginTX()
 
     NVIC_EnableIRQ(USARTNUM_IRQn);
     // turn on preemption, set prio low
-    NVIC_SetPriority(USARTNUM_IRQn, 0xe0);
+    NVIC_SetPriority(USARTNUM_IRQn, 0x80);
 
 
     USART_Cmd(UARTNUM, ENABLE);
@@ -264,9 +267,9 @@ void dmx_txIRQ()
         // wait one txe cyle for addr 512 to complete sending
         if (dmx_idlecounter == 1)
         {
-            GPIO_WriteBit(GPIOPORT, GPIOTXPIN, 1);
+            GPIO_WriteBit(GPIOPORT, GPIOTXPIN, Bit_SET);
             dxm_gpiotx.GPIO_Mode = GPIO_Mode_Out_PP;
-            dxm_gpiotx.GPIO_Speed = GPIO_Speed_2MHz;
+            dxm_gpiotx.GPIO_Speed = GPIO_Speed_50MHz;
             GPIO_Init(GPIOPORT, &dxm_gpiotx);
         }
         if ((dmx_idlecounter > dmx_idletime) && (dmx_idletime > 1))
@@ -282,7 +285,7 @@ void dmx_txIRQ()
         dmx_poscoutner = 0;
         dmx_idlecounter = 0;
         // set line low
-        GPIO_WriteBit(GPIOPORT, GPIOTXPIN, 0);
+        GPIO_WriteBit(GPIOPORT, GPIOTXPIN, Bit_RESET);
 
         dmx_bkcounter++;
 

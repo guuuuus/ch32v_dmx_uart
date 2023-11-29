@@ -6,7 +6,7 @@ This library does not set the rs485 driver in the right direction. Do so before 
 
 #ifndef dmx_ch32v_h
 #define dmx_ch32v_h
-#define DMX_UART1 // defines the uart to use
+#define DMX_UART2 // defines the uart to use
 
 #if defined(CH32V00X)
 #include <ch32v00x.h>
@@ -26,6 +26,13 @@ This library does not set the rs485 driver in the right direction. Do so before 
 #define DMX_UART1
 #endif
 
+#endif
+
+#if defined(CH32X035)
+#include <ch32x035.h>
+#include <ch32x035_gpio.h>
+#include <ch32x035_rcc.h>
+#include <ch32x035_usart.h>
 #endif
 
 #if defined(CH32V10X)
@@ -50,7 +57,7 @@ This library does not set the rs485 driver in the right direction. Do so before 
 #include <ch32v30x_usart.h>
 #endif
 
-#if defined CH32V30X || CH32V20X || CH32V30X
+#if defined CH32V30X || CH32V20X || CH32V30X || CH32X035
 #if defined(DMX_UART2)
 #define GPIOPORT GPIOA
 #define RCC_APB2Periph_GPIOPORT RCC_APB2Periph_GPIOA

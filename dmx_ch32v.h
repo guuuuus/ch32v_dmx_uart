@@ -6,6 +6,7 @@ This library does not set the rs485 driver in the right direction. Do so before 
 
 #ifndef dmx_ch32v_h
 #define dmx_ch32v_h
+// #define DMX_UART1 // defines the uart to use
 #define DMX_UART2 // defines the uart to use
 
 #if defined(CH32V00X)
@@ -75,14 +76,24 @@ This library does not set the rs485 driver in the right direction. Do so before 
 #define GPIORXPIN GPIO_Pin_10
 
 #define UARTNUM USART3
-#define RCC_APB2Periph_USARTNUM RCC_APB1Periph_USART2
+#define RCC_APB2Periph_USARTNUM RCC_APB1Periph_USART3
 #define USARTNUM_IRQn USART3_IRQn
 
+#elif defined(DMX_UART4)
+#define GPIOPORT GPIOB
+#define RCC_APB2Periph_GPIOPORT RCC_APB2Periph_GPIOB
+#define GPIOTXPIN GPIO_Pin_0
+#define GPIORXPIN GPIO_Pin_1
+
+#define UARTNUM UART4
+#define RCC_APB2Periph_USARTNUM RCC_APB1Periph_UART4
+#define USARTNUM_IRQn UART4_IRQn
+
 #else // use uart1
-#define GPIOPORT GPIOA
-#define RCC_APB2Periph_GPIOPORT RCC_APB2Periph_GPIOA
-#define GPIOTXPIN GPIO_Pin_9
-#define GPIORXPIN GPIO_Pin_10
+#define GPIOPORT GPIOB
+#define RCC_APB2Periph_GPIOPORT RCC_APB2Periph_GPIOB
+#define GPIOTXPIN GPIO_Pin_10
+#define GPIORXPIN GPIO_Pin_11
 
 #define UARTNUM USART1
 #define RCC_APB2Periph_USARTNUM RCC_APB2Periph_USART1
@@ -96,7 +107,7 @@ This library does not set the rs485 driver in the right direction. Do so before 
 extern volatile unsigned char dmx_data[512];
 extern volatile unsigned char dmx_startcode;
 extern volatile unsigned char dmx_newdata;
-extern volatile unsigned char dmx_pktsize;
+extern volatile unsigned short dmx_pktsize;
 
 typedef enum
 {
@@ -167,6 +178,12 @@ unsigned char dmx_getStartcode();
 
 // returns 0xff if new frame is avail since last check
 unsigned char dmx_newPacket();
+
+// return dmx state machine state
+dmx_state_t dmx_getState();
+
+// set all to zero
+void dmx_clear();
 
 // returns size of last received packet
 unsigned short dmx_getPacketSize();

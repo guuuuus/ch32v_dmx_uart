@@ -6,7 +6,7 @@ void dmx_rxIRQ(void);
 void dmx_irqplaceholder();
 
 volatile unsigned char dmx_data[512];
-volatile unsigned short dmx_poscoutner = 0;
+volatile unsigned short dmx_poscounter = 0;
 volatile unsigned char dmx_bkcounter = 0;
 unsigned char dmx_bktime = 6; // can be changed in, 4 sems to go well withing spec,
 volatile unsigned short dmx_idlecounter = 0;
@@ -16,7 +16,7 @@ void (*dmx_interrupt)(void) = &dmx_irqplaceholder;
 
 volatile unsigned char dmx_startcode = 0x00;
 volatile unsigned char dmx_newdata = 0x00;
-volatile unsigned char dmx_pktsize;
+volatile unsigned short dmx_pktsize;
 volatile dmx_state_t dmx_state = DMX_IDLE;
 volatile dmx_dir_t dmx_dir;
 
@@ -28,12 +28,18 @@ void dmx_irqplaceholder()
     USART_ClearITPendingBit(UARTNUM, 0xffff);
 }
 
+dmx_state_t dmx_getState()
+{
+    return dmx_state;
+}
+
 void dmx_beginRX()
 {
     GPIO_InitTypeDef dxm_gpiorx;
 
     // dir for it
     dmx_dir = DMX_RX;
+    dmx_state = DMX_IDLE;
 
     // peripheral clock
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOPORT, ENABLE);
@@ -42,7 +48,6 @@ void dmx_beginRX()
 #elif defined(DMX_UART2) || (DMX_UART3)
     RCC_APB1PeriphClockCmd(RCC_APB2Periph_USARTNUM, ENABLE);
 #endif
-
 
     dxm_gpiorx.GPIO_Pin = GPIORXPIN;
     dxm_gpiorx.GPIO_Mode = GPIO_Mode_IN_FLOATING;
@@ -69,16 +74,26 @@ void dmx_beginRX()
     USART_Cmd(UARTNUM, ENABLE);
 }
 
+void dmx_clear()
+{
+    for (unsigned short i = 0; i < 512; i++)
+    {
+        dmx_data[i] = 0;
+    }
+}
+
 void dmx_beginTX()
 {
+
     // dir for it
     dmx_dir = DMX_TX;
+    dmx_state = DMX_IDLE;
 
     // peripheral clock
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOPORT, ENABLE);
 #if defined(DMX_UART1)
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_USARTNUM, ENABLE);
-#elif defined(DMX_UART2) || (DMX_UART3)
+#else
     RCC_APB1PeriphClockCmd(RCC_APB2Periph_USARTNUM, ENABLE);
 #endif
 
@@ -108,7 +123,6 @@ void dmx_beginTX()
     // turn on preemption, set prio low
     NVIC_SetPriority(USARTNUM_IRQn, 0x80);
 
-
     USART_Cmd(UARTNUM, ENABLE);
 }
 
@@ -120,13 +134,18 @@ void dmx_stop()
     // // uart peri
     // USART_Cmd(UARTNUM, DISABLE);
 
-//     // peripheral clock
-//     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOPORT, DISABLE);
-// #if defined(DMX_UART1)
-//     RCC_APB2PeriphClockCmd(RCC_APB2Periph_USARTNUM, DISABLE);
-// #elif defined(DMX_UART2) || (DMX_UART3)
-//     RCC_APB1PeriphClockCmd(RCC_APB2Periph_USARTNUM, DISABLE);
-// #endif
+    //     // peripheral clock
+    //     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOPORT, DISABLE);
+    // #if defined(DMX_UART1)
+    //     RCC_APB2PeriphClockCmd(RCC_APB2Periph_USARTNUM, DISABLE);
+    // #elif defined(DMX_UART2) || (DMX_UART3)
+    //     RCC_APB1PeriphClockCmd(RCC_APB2Periph_USARTNUM, DISABLE);
+    // #endif
+    if (dmx_dir == DMX_TX)
+    {
+        while (dmx_state != DMX_IDLE)
+            ;
+    }
     NVIC_DisableIRQ(USARTNUM_IRQn);
 
     dmx_state = DMX_STOP;
@@ -203,7 +222,7 @@ signed short dmx_setValue(unsigned short chan, unsigned char value)
 
 signed short dmx_setValues(unsigned short startchan, unsigned char *p, unsigned short len)
 {
-    if (((startchan + len) > 511) || (dmx_dir == DMX_RX)) // out of range or in rx mode
+    if (((startchan + len) > 512) || (dmx_dir == DMX_RX)) // out of range or in rx mode
         return -1;
     for (unsigned short i = 0; i < len; i++)
     {
@@ -228,7 +247,7 @@ signed short dmx_getValue(unsigned short chan)
 
 signed short dmx_getValues(unsigned short startchan, unsigned char *p, unsigned short len)
 {
-    if ((startchan + len) > 511) // out of range
+    if ((startchan + len) > 512) // out of range
         return -1;
     for (unsigned short i = 0; i < len; i++)
     {
@@ -282,7 +301,7 @@ void dmx_txIRQ()
 
     case DMX_BREAK:
         // reset counters
-        dmx_poscoutner = 0;
+        dmx_poscounter = 0;
         dmx_idlecounter = 0;
         // set line low
         GPIO_WriteBit(GPIOPORT, GPIOTXPIN, Bit_RESET);
@@ -313,9 +332,9 @@ void dmx_txIRQ()
         break;
 
     case DMX_RUN:
-        USART_SendData(UARTNUM, dmx_data[dmx_poscoutner]);
-        dmx_poscoutner++;
-        if (dmx_poscoutner >= 512)
+        USART_SendData(UARTNUM, dmx_data[dmx_poscounter]);
+        dmx_poscounter++;
+        if (dmx_poscounter >= 512)
         {
             dmx_state = DMX_IDLE;
             dmx_newdata = 0xff;
@@ -342,26 +361,29 @@ void dmx_rxIRQ()
     case DMX_BREAK:
         if (fe)
         {
-            dmx_poscoutner = 0;
             dmx_state = DMX_START;
-            dmx_newdata = 0xff;
+            // dmx_newdata = 0xff;
         }
         break;
 
     case DMX_START:
+        dmx_pktsize = dmx_poscounter;
+        dmx_poscounter = 0;
+        dmx_newdata = 0xff;
         dmx_startcode = data;
         dmx_state = DMX_RUN;
         break;
 
     case DMX_RUN:
-        dmx_data[dmx_poscoutner] = data;
-        dmx_poscoutner++;
-        if (dmx_poscoutner >= 512)
+        dmx_data[dmx_poscounter] = data;
+        dmx_poscounter++;
+        if (dmx_poscounter >= 512)
         {
             dmx_state = DMX_BREAK;
         }
         break;
     default:
+        dmx_state = DMX_IDLE;
         break;
     }
 }
